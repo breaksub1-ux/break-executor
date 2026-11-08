@@ -1,0 +1,72 @@
+name: Build BREAK EXECUTOR for Windows x64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "master"]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build BREAK_EXECUTOR.exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+
+      - name: Install build dependency
+        shell: pwsh
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Validate source
+        shell: pwsh
+        run: python -m py_compile break_executor.py
+
+      - name: Build standalone GUI executable
+        shell: pwsh
+        run: >-
+          python -m PyInstaller
+          --noconfirm
+          --clean
+          --onefile
+          --windowed
+          --name BREAK_EXECUTOR
+          --distpath dist
+          --workpath build
+          --specpath build
+          break_executor.py
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/BREAK_EXECUTOR.exe")) {
+            throw "dist/BREAK_EXECUTOR.exe não foi gerado."
+          }
+          $size = (Get-Item "dist/BREAK_EXECUTOR.exe").Length
+          if ($size -lt 100000) {
+            throw "O executável gerado parece inválido ou incompleto."
+          }
+          Write-Host "BREAK_EXECUTOR.exe gerado: $size bytes"
+
+      - name: Upload BREAK_EXECUTOR.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: BREAK_EXECUTOR-Windows-x64
+          path: dist/BREAK_EXECUTOR.exe
+          if-no-files-found: error
+          retention-days: 30
