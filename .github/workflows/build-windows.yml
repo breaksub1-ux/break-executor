@@ -27,7 +27,6 @@ jobs:
         with:
           python-version: "3.12"
           architecture: x64
-          cache: pip
 
       - name: Install build dependency
         shell: pwsh
@@ -57,10 +56,13 @@ jobs:
           if (-not (Test-Path "dist/BREAK_EXECUTOR.exe")) {
             throw "dist/BREAK_EXECUTOR.exe não foi gerado."
           }
+
           $size = (Get-Item "dist/BREAK_EXECUTOR.exe").Length
+
           if ($size -lt 100000) {
             throw "O executável gerado parece inválido ou incompleto."
           }
+
           Write-Host "BREAK_EXECUTOR.exe gerado: $size bytes"
 
       - name: Upload BREAK_EXECUTOR.exe
